@@ -1,4 +1,4 @@
-module github.com/alexbathome/mttp
+module github.com/alexbathome/mttp/mttp
 
 go 1.19
 
