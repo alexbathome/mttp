@@ -8,3 +8,10 @@ func routeHasMethod(requestMethod string, routeMethods []string) bool {
 	}
 	return false
 }
+
+func isBetween(point, start, end int, inclusive bool) bool {
+	if !inclusive {
+		return start < point && point < end
+	}
+	return start <= point && point <= end
+}

@@ -3,46 +3,54 @@ package mttp
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type mttpHandler struct {
 	mux             http.ServeMux
 	handlerFunc     http.HandlerFunc
+	promCounters    map[string]prometheus.Counter
 	acceptedMethods []string
 }
 
+// mttpResponseWriter is a struct that holds additional information on the
+type mttpResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func newMttpResponseWriter(rw http.ResponseWriter) *mttpResponseWriter {
+	return &mttpResponseWriter{rw, http.StatusOK}
+}
+
+func (mrw *mttpResponseWriter) WriteHeader(statusCode int) {
+	mrw.statusCode = statusCode
+	mrw.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (mrw *mttpResponseWriter) GetStatusCode() int {
+	return mrw.statusCode
+}
+
 func (m *mttpHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	// convert the httpResponseWriter to our managed mttpResponseWriter
+	responseWriter := newMttpResponseWriter(rw)
 	if !routeHasMethod(r.Method, m.acceptedMethods) {
-		methodNotAllowedResponse(rw, r)
-		return
-	}
-	m.handlerFunc(rw, r)
-}
-
-func startServer(s server) error {
-	listenAndServeAddr := fmt.Sprintf("%s", s.address)
-	fmt.Printf("Server address is %s\n", listenAndServeAddr)
-	handler, err := createMuxHandler(s)
-	if err != nil {
-		return err
-	}
-	err = http.ListenAndServe(listenAndServeAddr, handler)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func createMuxHandler(s server) (http.Handler, error) {
-	myMux := http.NewServeMux()
-	for _, r := range s.routes {
-		rBuilt, err := r.Build().Route()
-		if err != nil {
-			return nil, err
+		fmt.Println("Method not found!")
+		methodNotAllowedResponse(responseWriter, r)
+		fmt.Println("Modified!")
+		if m.promCounters != nil {
+			// We have prom metrics enabled.
+			incrementStatusCounter(responseWriter, m.promCounters)
+			return
 		}
-		myMux.Handle(rBuilt.routePath, createRouteHandler(*myMux, *rBuilt))
 	}
-	return myMux, nil
+
+	if m.promCounters != nil {
+		m.handlerFunc(responseWriter, r)
+		incrementStatusCounter(responseWriter, m.promCounters)
+	}
 }
 
 func createRouteHandler(m http.ServeMux, r route) http.Handler {
@@ -50,6 +58,16 @@ func createRouteHandler(m http.ServeMux, r route) http.Handler {
 		mux:             m,
 		handlerFunc:     http.HandlerFunc(r.handlerFunc),
 		acceptedMethods: r.acceptedMethods,
+	}
+	return &h
+}
+
+func createRouteHandlerWithMetrics(m http.ServeMux, r route, counters map[string]prometheus.Counter) http.Handler {
+	h := mttpHandler{
+		mux:             m,
+		handlerFunc:     http.HandlerFunc(r.handlerFunc),
+		acceptedMethods: r.acceptedMethods,
+		promCounters:    counters,
 	}
 	return &h
 }

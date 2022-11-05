@@ -1,18 +1,15 @@
 package mttp
 
+import "net/http"
+
 type server struct {
-	name        string
-	address     string
-	port        string
-	useMetrics  bool
-	metricsPort string
-	routes      []RouteBuilder
+	server     *http.Server
+	promServer *http.Server
 }
 
-func (s *server) Start() int {
-	err := startServer(*s)
-	if err != nil {
-		return 1
+func (s *server) Start() error {
+	if s.promServer != nil {
+		go s.promServer.ListenAndServe()
 	}
-	return 0
+	return s.server.ListenAndServe()
 }
