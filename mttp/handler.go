@@ -14,25 +14,6 @@ type mttpHandler struct {
 	acceptedMethods []string
 }
 
-// mttpResponseWriter is a struct that holds additional information on the
-type mttpResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func newMttpResponseWriter(rw http.ResponseWriter) *mttpResponseWriter {
-	return &mttpResponseWriter{rw, http.StatusOK}
-}
-
-func (mrw *mttpResponseWriter) WriteHeader(statusCode int) {
-	mrw.statusCode = statusCode
-	mrw.ResponseWriter.WriteHeader(statusCode)
-}
-
-func (mrw *mttpResponseWriter) GetStatusCode() int {
-	return mrw.statusCode
-}
-
 func (m *mttpHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// convert the httpResponseWriter to our managed mttpResponseWriter
 	responseWriter := newMttpResponseWriter(rw)
