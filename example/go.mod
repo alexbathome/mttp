@@ -2,7 +2,7 @@ module github.com/alexbathome/mttp/example
 
 go 1.19
 
-require github.com/alexbathome/mttp/mttp v0.0.0-20221105062959-e084f1d3d22f
+require github.com/alexbathome/mttp/mttp v0.1.0
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -16,5 +16,3 @@ require (
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
-
-replace github.com/alexbathome/mttp v0.0.0 => ../mttp
