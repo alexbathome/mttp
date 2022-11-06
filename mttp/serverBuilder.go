@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/alexbathome/mttp/mttp/internal/validator"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// serverBuilder is the internal struct used by the mttp server
 type serverBuilder struct {
 	name    string
 	address string
@@ -18,10 +20,10 @@ type serverBuilder struct {
 	routes []RouteBuilder
 
 	serverMux *http.ServeMux
-
-	promServer *http.Server
 }
 
+// NewServer is the entry point to the mttp library, this creates a ServerBuilder interface
+// which can be used to configure the mttp server.
 func NewServer(name, address, port string) ServerBuilder {
 	return &serverBuilder{
 		name:    name,
@@ -30,18 +32,30 @@ func NewServer(name, address, port string) ServerBuilder {
 	}
 }
 
+// WithRoutes is a builder method which adds routes to the mttp server.
 func (s *serverBuilder) WithRoutes(routes ...RouteBuilder) ServerBuilder {
 	s.routes = append(s.routes, routes...)
 	return s
 }
 
+// WithMetrics enables prometheus metrics for our mttp server, it accepts a
+// single parameter which is the port that the metrics server will be available
+// on.
 func (s *serverBuilder) WithMetrics(metricsPort string) ServerBuilder {
 	s.metricsPort = metricsPort
 	s.useMetrics = true
 	return s
 }
 
+// Build is the function that ultimately constructs our mttp server as per the definition
+// specified in the builder pattern.
 func (s *serverBuilder) Build() (Server, error) {
+
+	// validate!
+	err := s.validate()
+	if err != nil {
+		return nil, err
+	}
 
 	// create the server
 	appServer, err := s.createServer()
@@ -64,6 +78,7 @@ func (s *serverBuilder) Build() (Server, error) {
 	}, nil
 }
 
+// createServer creates our internal http server
 func (s *serverBuilder) createServer() (*http.Server, error) {
 	err := s.createServerHandler()
 	if err != nil {
@@ -93,20 +108,23 @@ func (s *serverBuilder) createPromServer() (*http.Server, error) {
 func (s *serverBuilder) createServerHandler() error {
 	s.serverMux = http.DefaultServeMux
 	for _, r := range s.routes {
-		route, err := r.Build().Route()
-		if err != nil {
-			return err
-		}
-
-		// if we are running prometheus also, we need to register the routes with the
-		// counters
 		if s.useMetrics {
-			counters := registerRouteWithPrometheusCounters(s.name, route.canonicaliseRoute())
-			s.serverMux.Handle(route.routePath, createRouteHandlerWithMetrics(*s.serverMux, *route, counters))
-		} else {
-			// Using else instead of "continue" here just to make it slightly more readable
-			s.serverMux.Handle(route.routePath, createRouteHandler(*s.serverMux, *route))
+			r.addMttpMiddleware(s.name)
 		}
+		r.Build(s.serverMux)
+	}
+	return nil
+}
+
+// validate method verifies that the configuration for the server is suitable for
+// implementation. The checks it includes are:
+// * Server name meets expectations
+// TODO - add more validations if required
+func (s *serverBuilder) validate() error {
+	// check server name
+	err := validator.ValidateServerName(s.name)
+	if err != nil {
+		return err
 	}
 	return nil
 }
