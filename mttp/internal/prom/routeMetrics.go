@@ -8,7 +8,7 @@ import (
 )
 
 // mttpRouteMetricer is an interface that is implmeneted by the mttpRouteMetrics struct
-// it provides a means to create and increment prometheous counters for a given server, and
+// it provides a means to create and increment prometheus counters for a given server, and
 // route identifier
 type MttpRouteMetricer interface {
 	IncremementStatusCode(statusCode int)
