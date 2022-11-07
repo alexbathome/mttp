@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 # Read the version
-version=$(cat version)
+version=$(cat .github/workflows/version)
 versionString="mttp/v$version"
 
 # Push up the new version to GH
