@@ -1,8 +1,10 @@
 #!/usr/bin/bash
 
 # Read the version
-version=$(cat version)
+version=$(cat .github/workflows/version)
 versionString="mttp/v$version"
+
+echo "Updating mttp version to $versionString"
 
 # Push up the new version to GH
 git tag $versionString
