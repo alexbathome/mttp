@@ -5,7 +5,7 @@ method of creating a HTTP router, all the while keeping the configuration clear 
 The mttp package leans on the builder pattern to exhibit a declarative way of configuring your HTTP server
 and it's routes.
 
-To get started, you can simply define a simple server such as the example blow
+To get started, you can simply define a simple server such as the example below
 
 	import (
 		"net/http"
