@@ -4,6 +4,8 @@
 version=$(cat .github/workflows/version)
 versionString="mttp/v$version"
 
+echo "Updating mttp version to $versionString"
+
 # Push up the new version to GH
 git tag $versionString
 git push origin $versionString
